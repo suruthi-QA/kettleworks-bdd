@@ -1,0 +1,5 @@
+behave>=1.2.6
+selenium>=4.20
+requests>=2.31
+behave-html-formatter>=0.9.10
+allure-behave>=2.13

@@ -1,0 +1,495 @@
+Feature: Shop listing - search, filter, sort and pagination # features/01_shop.feature:1
+  As a shopper
+  I want to find products quickly
+  So that I can buy what I need
+  Feature: Shop listing - search, filter, sort and pagination  # features/01_shop.feature:1
+
+  @TC-01 @smoke
+  Scenario: Home page shows the first page of products  # features/01_shop.feature:10
+    Given I am on the shop page                         # features/steps/common_steps.py:14
+    Then I should see 6 products                        # features/steps/shop_steps.py:35
+    And the pager should show "Page 1 of 3"             # features/steps/shop_steps.py:41
+
+  @TC-02 @smoke
+  Scenario: Search with matching case                        # features/01_shop.feature:15
+    Given I am on the shop page                              # features/steps/common_steps.py:14
+    When I search for "Kadai"                                # features/steps/shop_steps.py:12
+    Then I should see "Cast Iron Kadai, 24cm" in the results # features/steps/shop_steps.py:47
+
+  @TC-03 @BUG-08
+  Scenario: Search ignores upper and lower case              # features/01_shop.feature:20
+    Given I am on the shop page                              # features/steps/common_steps.py:14
+    When I search for "kadai"                                # features/steps/shop_steps.py:12
+    Then I should see "Cast Iron Kadai, 24cm" in the results # features/steps/shop_steps.py:47
+      ASSERT FAILED: "Cast Iron Kadai, 24cm" not in results: []
+
+
+  @TC-04 @BUG-09
+  Scenario: Search with no match shows an empty state  # features/01_shop.feature:25
+    Given I am on the shop page                        # features/steps/common_steps.py:14
+    When I search for "xyz123"                         # features/steps/shop_steps.py:12
+    Then no products should be listed                  # features/steps/shop_steps.py:53
+    And the loading spinner should not be visible      # features/steps/shop_steps.py:59
+      ASSERT FAILED: Spinner still showing 'Loading products'
+
+
+  @TC-05
+  Scenario Outline: Filter by category -- @1.1            # features/01_shop.feature:37
+    Given I am on the shop page                           # features/steps/common_steps.py:14
+    When I select the category "Cookware"                 # features/steps/shop_steps.py:18
+    Then every listed product should belong to "Cookware" # features/steps/shop_steps.py:64
+
+  @TC-05
+  Scenario Outline: Filter by category -- @1.2            # features/01_shop.feature:38
+    Given I am on the shop page                           # features/steps/common_steps.py:14
+    When I select the category "Bakeware"                 # features/steps/shop_steps.py:18
+    Then every listed product should belong to "Bakeware" # features/steps/shop_steps.py:64
+
+  @TC-05
+  Scenario Outline: Filter by category -- @1.3         # features/01_shop.feature:39
+    Given I am on the shop page                        # features/steps/common_steps.py:14
+    When I select the category "Tools"                 # features/steps/shop_steps.py:18
+    Then every listed product should belong to "Tools" # features/steps/shop_steps.py:64
+
+  @TC-05
+  Scenario Outline: Filter by category -- @1.4           # features/01_shop.feature:40
+    Given I am on the shop page                          # features/steps/common_steps.py:14
+    When I select the category "Storage"                 # features/steps/shop_steps.py:18
+    Then every listed product should belong to "Storage" # features/steps/shop_steps.py:64
+
+  @TC-06
+  Scenario: Sort by price, low to high           # features/01_shop.feature:43
+    Given I am on the shop page                  # features/steps/common_steps.py:14
+    When I sort by "Price, low to high"          # features/steps/shop_steps.py:24
+    Then the prices should be in ascending order # features/steps/shop_steps.py:72
+
+  @TC-07
+  Scenario: Sort by price, high to low            # features/01_shop.feature:48
+    Given I am on the shop page                   # features/steps/common_steps.py:14
+    When I sort by "Price, high to low"           # features/steps/shop_steps.py:24
+    Then the prices should be in descending order # features/steps/shop_steps.py:78
+
+  @TC-08 @BUG-10
+  Scenario: Sorting keeps the category filter            # features/01_shop.feature:53
+    Given I am on the shop page                          # features/steps/common_steps.py:14
+    When I select the category "Bakeware"                # features/steps/shop_steps.py:18
+    And I sort by "Price, low to high"                   # features/steps/shop_steps.py:24
+    Then the category filter should still be "Bakeware"  # features/steps/shop_steps.py:84
+      ASSERT FAILED: Category filter changed to "All categories"
+
+    And every listed product should belong to "Bakeware" # None
+
+  @TC-09 @BUG-11
+  Scenario: Every product appears exactly once across pages  # features/01_shop.feature:60
+    Given I am on the shop page                              # features/steps/common_steps.py:14
+    When I go through all pages                              # features/steps/shop_steps.py:30
+      Traceback (most recent call last):
+        File "C:\Users\Suruthi\Downloads\kettleworks-bdd\kettleworks-bdd\.venv\Lib\site-packages\behave\model.py", line 1991, in run
+          match.run(runner.context)
+          ~~~~~~~~~^^^^^^^^^^^^^^^^
+        File "C:\Users\Suruthi\Downloads\kettleworks-bdd\kettleworks-bdd\.venv\Lib\site-packages\behave\matchers.py", line 105, in run
+          self.func(context, *args, **kwargs)
+          ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "features\steps\shop_steps.py", line 32, in go_through_pages
+          context.all_names = all_listed_names(context)
+                              ~~~~~~~~~~~~~~~~^^^^^^^^^
+        File "C:\Users\Suruthi\Downloads\kettleworks-bdd\kettleworks-bdd\utils.py", line 150, in all_listed_names
+          while button(context, "Next").is_enabled():
+                ~~~~~~^^^^^^^^^^^^^^^^^
+        File "C:\Users\Suruthi\Downloads\kettleworks-bdd\kettleworks-bdd\utils.py", line 40, in button
+          return wait(context).until(EC.element_to_be_clickable((By.XPATH, xpath)))
+                 ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "C:\Users\Suruthi\Downloads\kettleworks-bdd\kettleworks-bdd\.venv\Lib\site-packages\selenium\webdriver\support\wait.py", line 121, in until
+          raise TimeoutException(message, screen, stacktrace)
+      selenium.common.exceptions.TimeoutException: Message:
+
+    Then each product should appear only once                # None
+    And the number of listed products should match the API   # None
+
+  @TC-10
+  Scenario: Previous button is disabled on the first page  # features/01_shop.feature:66
+    Given I am on the shop page                            # features/steps/common_steps.py:14
+    Then the "Previous" button should be disabled          # features/steps/shop_steps.py:102
+
+Feature: Product page - add to cart, care guide and reviews # features/02_product.feature:1
+
+  @TC-13 @smoke
+  Scenario: Add a product to the cart                    # features/02_product.feature:4
+    Given I open the product "kw-302"                    # features/steps/common_steps.py:20
+    When I add 1 of it to the cart                       # features/steps/product_steps.py:12
+    Then I should see a toast containing "Added to cart" # features/steps/common_steps.py:88
+    And the cart badge should show 1                     # features/steps/common_steps.py:98
+
+  @TC-14 @BUG-05
+  Scenario: Quantity above stock is not allowed                                  # features/02_product.feature:11
+    Given I open the product "kw-101"                                            # features/steps/common_steps.py:20
+    When I add 50 of it to the cart                                              # features/steps/product_steps.py:12
+    Then the cart should not hold more than the stock of "Cast Iron Kadai, 24cm" # features/steps/product_steps.py:19
+      ASSERT FAILED: Cart has 50 but only 8 in stock
+
+
+  @TC-15 @BUG-06
+  Scenario Outline: Zero or negative quantity is not added -- @1.1   # features/02_product.feature:24
+    Given I open the product "kw-101"                                # features/steps/common_steps.py:20
+    When I add -2 of it to the cart                                  # features/steps/product_steps.py:12
+    Then the cart should be empty                                    # features/steps/product_steps.py:27
+      ASSERT FAILED: Cart should be empty but has [{'id': 'kw-101', 'qty': -2}]
+
+
+  @TC-15 @BUG-06
+  Scenario Outline: Zero or negative quantity is not added -- @1.2   # features/02_product.feature:25
+    Given I open the product "kw-101"                                # features/steps/common_steps.py:20
+    When I add 0 of it to the cart                                   # features/steps/product_steps.py:12
+    Then the cart should be empty                                    # features/steps/product_steps.py:27
+      ASSERT FAILED: Cart should be empty but has [{'id': 'kw-101', 'qty': 0}]
+
+
+  @TC-17 @BUG-26
+  Scenario: Care guide modal can be closed with the Close button inside it and with Escape  # features/02_product.feature:28
+    Given I open the product "kw-101"                                                       # features/steps/common_steps.py:20
+    When I open the care and sizing guide                                                   # features/steps/product_steps.py:33
+    Then the Close button should be inside the modal                                        # features/steps/product_steps.py:39
+      ASSERT FAILED: Close button sits outside the modal box
+
+    When I press Escape                                                                     # None
+    Then the modal should be closed                                                         # None
+
+  @TC-18
+  Scenario: Post a review                                            # features/02_product.feature:36
+    Given I open the product "kw-202"                                # features/steps/common_steps.py:20
+    When I post the review "Latch still tight after a year"          # features/steps/product_steps.py:62
+    Then I should see a toast containing "Review posted"             # features/steps/common_steps.py:88
+    And the review "Latch still tight after a year" should be listed # features/steps/product_steps.py:68
+
+  @TC-20 @BUG-20 @security
+  Scenario: HTML in a review is shown as plain text                    # features/02_product.feature:43
+    Given I open the product "kw-202"                                  # features/steps/common_steps.py:20
+    When I post the review "<b>bold-check</b>"                         # features/steps/product_steps.py:62
+    Then the review "<b>bold-check</b>" should be listed as plain text # features/steps/product_steps.py:74
+      ASSERT FAILED: HTML was rendered instead of shown as text: ['bold-check\nVerified buyer · 19/11/2026']
+
+
+Feature: Cart - totals, quantity, remove and promo codes # features/03_cart.feature:1
+
+  Feature: Cart - totals, quantity, remove and promo codes  # features/03_cart.feature:1
+
+  @TC-22 @BUG-01
+  Scenario: Line total is price multiplied by quantity      # features/03_cart.feature:11
+    Given my cart has these items                           # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 2   |
+      | kw-302 | 3   |
+    And I am on the cart page                               # features/steps/common_steps.py:31
+    Then the line total for "Loaf Tin, 900g" should be 1480 # features/steps/cart_steps.py:17
+      ASSERT FAILED: Line total for Loaf Tin, 900g is 740.0, expected 1480
+
+
+  @TC-23 @BUG-01
+  Scenario: Subtotal is the sum of all lines  # features/03_cart.feature:15
+    Given my cart has these items             # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 2   |
+      | kw-302 | 3   |
+    And I am on the cart page                 # features/steps/common_steps.py:31
+    Then the subtotal should be 2920          # features/steps/cart_steps.py:23
+      ASSERT FAILED: Subtotal is 1220.0, expected 2920
+
+
+  @TC-24 @BUG-07
+  Scenario: Changing quantity updates totals and the cart badge  # features/03_cart.feature:19
+    Given my cart has these items                                # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 2   |
+      | kw-302 | 3   |
+    And I am on the cart page                                    # features/steps/common_steps.py:31
+    When I change the quantity of "Wooden Spatula Set of 3" to 1 # features/steps/cart_steps.py:30
+    Then the subtotal should be 1960                             # features/steps/cart_steps.py:23
+      ASSERT FAILED: Subtotal is 1220.0, expected 1960
+
+    And the cart badge should show 3                             # None
+
+  @TC-25 @BUG-04
+  Scenario: Remove deletes the chosen item only                # features/03_cart.feature:25
+    Given my cart has these items                              # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 2   |
+      | kw-302 | 3   |
+    And I am on the cart page                                  # features/steps/common_steps.py:31
+    When I remove "Wooden Spatula Set of 3" from the cart      # features/steps/cart_steps.py:38
+    Then the cart should not contain "Wooden Spatula Set of 3" # features/steps/cart_steps.py:44
+      ASSERT FAILED: "Wooden Spatula Set of 3" is still in the cart: ['Wooden Spatula Set of 3']
+
+    And the cart should contain "Loaf Tin, 900g"               # None
+
+  @TC-26 @BUG-02
+  Scenario: SAVE10 gives 10 percent off the subtotal       # features/03_cart.feature:31
+    Given my cart has these items                          # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 2   |
+      | kw-302 | 3   |
+    And I am on the cart page                              # features/steps/common_steps.py:31
+    When I apply the promo code "SAVE10"                   # features/steps/cart_steps.py:56
+    Then the discount should be 10 percent of the subtotal # features/steps/cart_steps.py:63
+      ASSERT FAILED: Discount is 231.8, expected 122.0
+
+
+  @TC-27
+  Scenario: An invalid promo code shows an error                                 # features/03_cart.feature:36
+    Given my cart has these items                                                # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 2   |
+      | kw-302 | 3   |
+    And I am on the cart page                                                    # features/steps/common_steps.py:31
+    When I apply the promo code "FAKECODE"                                       # features/steps/cart_steps.py:56
+    Then I should see a toast containing "That code is not valid on this order." # features/steps/common_steps.py:88
+
+  @TC-30 @BUG-24
+  Scenario: Cart prices use the rupee symbol          # features/03_cart.feature:41
+    Given my cart has these items                     # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 2   |
+      | kw-302 | 3   |
+    And I am on the cart page                         # features/steps/common_steps.py:31
+    Then the cart page should not show the "$" symbol # features/steps/cart_steps.py:72
+      ASSERT FAILED: Cart page shows "$"
+
+
+Feature: Checkout - placing orders and form validation # features/04_checkout.feature:1
+
+  Feature: Checkout - placing orders and form validation  # features/04_checkout.feature:1
+
+  @TC-31 @TC-42 @smoke
+  Scenario: Place an order with valid details                 # features/04_checkout.feature:10
+    Given my cart has these items                             # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                             # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details          # features/steps/checkout_steps.py:12
+    And I click "Place order"                                 # features/steps/common_steps.py:81
+    Then I should see the order confirmation with a reference # features/steps/checkout_steps.py:32
+    And the order should be listed on the Orders page         # features/steps/checkout_steps.py:43
+
+  @TC-33
+  Scenario: Email without domain part is rejected                    # features/04_checkout.feature:17
+    Given my cart has these items                                    # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                    # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                 # features/steps/checkout_steps.py:12
+    And I change "email" to "abc@"                                   # features/steps/checkout_steps.py:17
+    And I click "Place order"                                        # features/steps/common_steps.py:81
+    Then I should see the field error "Enter a valid email address." # features/steps/checkout_steps.py:50
+    And the order should not be placed                               # features/steps/checkout_steps.py:56
+
+  @TC-32 @BUG-12
+  Scenario Outline: Invalid field values are rejected -- @1.1 Blank or spaces-only required fields  # features/04_checkout.feature:33
+    Given my cart has these items                                                                   # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                                                   # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                                                # features/steps/checkout_steps.py:12
+    And I change "fullName" to "SPACES"                                                             # features/steps/checkout_steps.py:17
+    And I click "Place order"                                                                       # features/steps/common_steps.py:81
+    Then the order should not be placed                                                             # features/steps/checkout_steps.py:56
+      ASSERT FAILED: Order was placed with invalid data (1 order(s) saved)
+
+
+  @TC-32 @BUG-12
+  Scenario Outline: Invalid field values are rejected -- @1.2 Blank or spaces-only required fields  # features/04_checkout.feature:34
+    Given my cart has these items                                                                   # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                                                   # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                                                # features/steps/checkout_steps.py:12
+    And I change "address" to "SPACES"                                                              # features/steps/checkout_steps.py:17
+    And I click "Place order"                                                                       # features/steps/common_steps.py:81
+    Then the order should not be placed                                                             # features/steps/checkout_steps.py:56
+      ASSERT FAILED: Order was placed with invalid data (1 order(s) saved)
+
+
+  @TC-32 @BUG-12
+  Scenario Outline: Invalid field values are rejected -- @1.3 Blank or spaces-only required fields  # features/04_checkout.feature:35
+    Given my cart has these items                                                                   # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                                                   # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                                                # features/steps/checkout_steps.py:12
+    And I change "city" to "SPACES"                                                                 # features/steps/checkout_steps.py:17
+    And I click "Place order"                                                                       # features/steps/common_steps.py:81
+    Then the order should not be placed                                                             # features/steps/checkout_steps.py:56
+      ASSERT FAILED: Order was placed with invalid data (1 order(s) saved)
+
+
+  @TC-34 @BUG-12
+  Scenario Outline: Invalid field values are rejected -- @2.1 Weak email  # features/04_checkout.feature:40
+    Given my cart has these items                                         # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                         # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                      # features/steps/checkout_steps.py:12
+    And I change "email" to "a@b"                                         # features/steps/checkout_steps.py:17
+    And I click "Place order"                                             # features/steps/common_steps.py:81
+    Then the order should not be placed                                   # features/steps/checkout_steps.py:56
+      ASSERT FAILED: Order was placed with invalid data (1 order(s) saved)
+
+
+  @TC-35 @BUG-12
+  Scenario Outline: Invalid field values are rejected -- @3.1 Letters in mobile number  # features/04_checkout.feature:45
+    Given my cart has these items                                                       # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                                       # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                                    # features/steps/checkout_steps.py:12
+    And I change "phone" to "phoneABC"                                                  # features/steps/checkout_steps.py:17
+    And I click "Place order"                                                           # features/steps/common_steps.py:81
+    Then the order should not be placed                                                 # features/steps/checkout_steps.py:56
+      ASSERT FAILED: Order was placed with invalid data (1 order(s) saved)
+
+
+  @TC-36 @BUG-12
+  Scenario Outline: Invalid field values are rejected -- @4.1 Wrong PIN code  # features/04_checkout.feature:50
+    Given my cart has these items                                             # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                             # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                          # features/steps/checkout_steps.py:12
+    And I change "pincode" to "12ab"                                          # features/steps/checkout_steps.py:17
+    And I click "Place order"                                                 # features/steps/common_steps.py:81
+    Then the order should not be placed                                       # features/steps/checkout_steps.py:56
+      ASSERT FAILED: Order was placed with invalid data (1 order(s) saved)
+
+
+  @TC-36 @BUG-12
+  Scenario Outline: Invalid field values are rejected -- @4.2 Wrong PIN code  # features/04_checkout.feature:51
+    Given my cart has these items                                             # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                                             # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details                          # features/steps/checkout_steps.py:12
+    And I change "pincode" to "123"                                           # features/steps/checkout_steps.py:17
+    And I click "Place order"                                                 # features/steps/common_steps.py:81
+    Then the order should not be placed                                       # features/steps/checkout_steps.py:56
+      ASSERT FAILED: Order was placed with invalid data (1 order(s) saved)
+
+
+  @TC-37 @BUG-13
+  Scenario: Pressing Enter submits the form                   # features/04_checkout.feature:54
+    Given my cart has these items                             # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                             # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details          # features/steps/checkout_steps.py:12
+    And I press Enter in the "pincode" field                  # features/steps/checkout_steps.py:22
+    Then I should see the order confirmation with a reference # features/steps/checkout_steps.py:32
+      ASSERT FAILED: Order confirmation page did not open
+
+
+  @TC-38 @BUG-14
+  Scenario: Double clicking Place order creates only one order  # features/04_checkout.feature:60
+    Given my cart has these items                               # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                               # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details            # features/steps/checkout_steps.py:12
+    And I double click "Place order"                            # features/steps/checkout_steps.py:27
+    Then exactly 1 order should be saved                        # features/steps/checkout_steps.py:64
+
+  @TC-39 @BUG-15
+  Scenario: No success message when validation fails        # features/04_checkout.feature:66
+    Given my cart has these items                           # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                           # features/steps/common_steps.py:37
+    When I fill the checkout form with valid details        # features/steps/checkout_steps.py:12
+    And I change "email" to "abc@"                          # features/steps/checkout_steps.py:17
+    And I click "Place order"                               # features/steps/common_steps.py:81
+    Then I should not see a toast containing "Order placed" # features/steps/common_steps.py:93
+      ASSERT FAILED: Unexpected toast containing "Order placed"
+
+
+  @TC-58 @BUG-25
+  Scenario: No spelling mistakes in checkout and confirmation  # features/04_checkout.feature:73
+    Given my cart has these items                              # features/steps/common_steps.py:26
+      | id     | qty |
+      | kw-201 | 1   |
+    And I am on the checkout page                              # features/steps/common_steps.py:37
+    Then the page should not contain the word "adress"         # features/steps/common_steps.py:116
+      ASSERT FAILED: Page contains the misspelt word "adress"
+
+    When I fill the checkout form with valid details           # None
+    And I click "Place order"                                  # None
+    Then the page should not contain the word "sucessfully"    # None
+
+Feature: Sign in, sign out and protected pages # features/05_auth.feature:1
+
+  @TC-44
+  Scenario: Sign in with empty fields shows an error                         # features/05_auth.feature:4
+    Given I am on the sign in page                                           # features/steps/common_steps.py:43
+    When I click "Sign in"                                                   # features/steps/common_steps.py:81
+    Then I should see the text "Enter both an email address and a password." # features/steps/common_steps.py:105
+
+  @TC-45 @smoke
+  Scenario: Customer can sign in                        # features/05_auth.feature:10
+    When I sign in as the customer                      # features/steps/common_steps.py:63
+    Then the header should show "Sign out"              # features/steps/common_steps.py:131
+    And the account page should show the customer email # features/steps/auth_steps.py:9
+
+  @TC-46 @BUG-18
+  Scenario Outline: Guest is sent to sign in for protected pages -- @1.1   # features/05_auth.feature:23
+    Given I am not signed in                                               # features/steps/common_steps.py:49
+    When I open "/checkout"                                                # features/steps/common_steps.py:55
+    Then I should be on the sign in page                                   # features/steps/common_steps.py:123
+      ASSERT FAILED: Not redirected to sign in; still on https://interview-qa-task.vercel.app/checkout
+
+
+  @TC-46 @BUG-18
+  Scenario Outline: Guest is sent to sign in for protected pages -- @1.2   # features/05_auth.feature:24
+    Given I am not signed in                                               # features/steps/common_steps.py:49
+    When I open "/orders"                                                  # features/steps/common_steps.py:55
+    Then I should be on the sign in page                                   # features/steps/common_steps.py:123
+      ASSERT FAILED: Not redirected to sign in; still on https://interview-qa-task.vercel.app/orders
+
+
+  @TC-47 @LBUG-01 @security
+  Scenario: Signing out removes access to the account page  # features/05_auth.feature:27
+    Given I sign in as the customer                         # features/steps/common_steps.py:63
+    When I sign out                                         # features/steps/common_steps.py:73
+    And I open "/account"                                   # features/steps/common_steps.py:55
+    Then I should not see the customer email                # features/steps/auth_steps.py:17
+      ASSERT FAILED: Account details are still visible after signing out
+
+
+Feature: Admin shop tools # features/06_admin.feature:1
+
+  @TC-52 @BUG-19 @security
+  Scenario: Guest cannot open the admin page    # features/06_admin.feature:4
+    Given I am not signed in                    # features/steps/common_steps.py:49
+    When I open "/admin"                        # features/steps/common_steps.py:55
+    Then I should not see the text "Shop tools" # features/steps/common_steps.py:110
+      ASSERT FAILED: "Shop tools" should not be on the page
+
+
+  @TC-53 @LBUG-02 @security
+  Scenario: Customer cannot open the admin page  # features/06_admin.feature:10
+    Given I sign in as the customer              # features/steps/common_steps.py:63
+    When I open "/admin"                         # features/steps/common_steps.py:55
+    Then I should not see the text "Shop tools"  # features/steps/common_steps.py:110
+      ASSERT FAILED: "Shop tools" should not be on the page
+
+
+  @TC-55 @smoke
+  Scenario: Admin sees every product and the right stock value                  # features/06_admin.feature:16
+    Given I sign in as the admin                                                # features/steps/common_steps.py:68
+    When I open "/admin"                                                        # features/steps/common_steps.py:55
+    Then the admin table should list every product                              # features/steps/admin_steps.py:14
+    And the stock value should equal price multiplied by stock for all products # features/steps/admin_steps.py:21
+
+  @TC-56 @ABUG-02
+  Scenario: Restock increases the stock of an item                    # features/06_admin.feature:23
+    Given I sign in as the admin                                      # features/steps/common_steps.py:68
+    When I open "/admin"                                              # features/steps/common_steps.py:55
+    And I click Restock for "Carbon Steel Tawa, 28cm"                 # features/steps/admin_steps.py:30
+    Then the stock of "Carbon Steel Tawa, 28cm" should be more than 0 # features/steps/admin_steps.py:36
+      ASSERT FAILED: Stock of Carbon Steel Tawa, 28cm is still 0
+
+
